@@ -105,6 +105,17 @@
     removeScrollingClass(i, x);
   }
 
+  var supportsPassive = false;
+  try {
+    var opts = Object.defineProperty({}, 'passive', {
+      get: function() {
+        supportsPassive = true;
+      }
+    });
+    window.addEventListener("testPassive", null, opts);
+    window.removeEventListener("testPassive", null, opts);
+  } catch (e) {}
+
   var EventElement = function EventElement(element) {
     this.element = element;
     this.handlers = {};
@@ -117,7 +128,7 @@
       this.handlers[eventName] = [];
     }
     this.handlers[eventName].push(handler);
-    this.element.addEventListener(eventName, handler, false);
+    this.element.addEventListener(eventName, handler, supportsPassive ? { passive: false } : false);
   };
 
   EventElement.prototype.unbind = function unbind (eventName, target) {
@@ -127,16 +138,14 @@
       if (target && handler !== target) {
         return true;
       }
-      this$1.element.removeEventListener(eventName, handler, false);
+      this$1.element.removeEventListener(eventName, handler, supportsPassive ? { passive: false } : false);
       return false;
     });
   };
 
   EventElement.prototype.unbindAll = function unbindAll () {
-    var this$1 = this;
-
-    for (var name in this$1.handlers) {
-      this$1.unbind(name);
+    for (var name in this.handlers) {
+      this.unbind(name);
     }
   };
 
@@ -331,8 +340,9 @@
     var roundedScrollTop = Math.floor(element.scrollTop);
     var rect = element.getBoundingClientRect();
 
-    i.containerWidth = Math.ceil(rect.width);
-    i.containerHeight = Math.ceil(rect.height);
+    i.containerWidth = Math.round(rect.width);
+    i.containerHeight = Math.round(rect.height);
+
     i.contentWidth = element.scrollWidth;
     i.contentHeight = element.scrollHeight;
 
@@ -1139,8 +1149,6 @@
   };
 
   var PerfectScrollbar = function PerfectScrollbar(element, userSettings) {
-    var this$2 = this;
-
     var this$1 = this;
     if ( userSettings === void 0 ) { userSettings = {}; }
 
@@ -1158,7 +1166,7 @@
 
     this.settings = defaultSettings();
     for (var key in userSettings) {
-      this$2.settings[key] = userSettings[key];
+      this.settings[key] = userSettings[key];
     }
 
     this.containerWidth = null;
